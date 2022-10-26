@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no"
+    />
+    <script
+      type="text/javascript"
+      src="https://openapi.map.naver.com/openapi/v3/maps.js?ncpClientId=rj0u1h60zd"
+    ></script>
+    <script type="text/javascript" src="exif.js"></script>
+    <title>사진 촬영 위치를 알려줍니다.</title>
+  </head>
+  <body>
+    사진 촬영 위치를 알려줍니다.
+    <br />
+    <table>
+      <tr>
+        <td><label for="takePhotoMenu">takePhotoMenu</label></td>
+        <td>
+          <input type="file" id="takePhotoMenu" capture accept="image/*" />
+        </td>
+      </tr>
+      <tr>
+        <td><label for="albumMenu">albumMenu</label></td>
+        <td><input type="file" id="albumMenu" accept="image/*" /></td>
+      </tr>
+      <tr>
+        <td colspan="2" id="gps"></td>
+      </tr>
+    </table>
+    <div id="map" style="width: 100%; height: 500px"></div>
+    <script>
+      const mapDiv = document.getElementById("map");
+      mapDiv.hidden = true;
+      const map = new naver.maps.Map(mapDiv, {
+        zoom: 17,
+      });
+
+      const marker = new naver.maps.Marker({
+        map: map,
+      });
+
+      const takePhotoMenu = document.getElementById("takePhotoMenu");
+      const albumMenu = document.getElementById("albumMenu");
+      takePhotoMenu.onchange = onchange;
+      albumMenu.onchange = onchange;
+      function onchange(e) {
+        console.log("onchange");
+        var file = e.target.files[0];
+        if (file && file.name) {
+          console.log("getData");
+          EXIF.getData(file, function () {
+            const exifData = EXIF.getAllTags(this);
+            if (exifData.GPSLatitude?.length && exifData.GPSLongitude?.length) {
+              console.log("GPS exist");
+              const latitude =
+                exifData.GPSLatitude[0].numerator /
+                  exifData.GPSLatitude[0].denominator +
+                exifData.GPSLatitude[1].numerator /
+                  exifData.GPSLatitude[1].denominator /
+                  60 +
+                exifData.GPSLatitude[2].numerator /
+                  exifData.GPSLatitude[2].denominator /
+                  3600;
+              const longitude =
+                exifData.GPSLongitude[0].numerator /
+                  exifData.GPSLongitude[0].denominator +
+                exifData.GPSLongitude[1].numerator /
+                  exifData.GPSLongitude[1].denominator /
+                  60 +
+                exifData.GPSLongitude[2].numerator /
+                  exifData.GPSLongitude[2].denominator /
+                  3600;
+              document.getElementById(
+                "gps"
+              ).innerText = `latitude ${latitude}, longitude ${longitude}`;
+              const latlng = new naver.maps.LatLng(latitude, longitude);
+              map.setCenter(latlng);
+              marker.setPosition(latlng);
+              mapDiv.hidden = false;
+            } else {
+              document.getElementById("gps").innerText = "";
+              mapDiv.hidden = true;
+            }
+          });
+        }
+      }
+    </script>
+  </body>
+</html>
