@@ -76,11 +76,16 @@
                   3600;
               document.getElementById(
                 "gps"
-              ).innerText = `latitude ${latitude}, longitude ${longitude}`;
-              const latlng = new naver.maps.LatLng(latitude, longitude);
-              map.setCenter(latlng);
-              marker.setPosition(latlng);
-              mapDiv.hidden = false;
+              ).innerText = `${file.name}<br/>latitude ${latitude}<br/>longitude ${longitude}`;
+              if (!isNaN(latitude) && !isNaN(longitude)) { 
+                const latlng = new naver.maps.LatLng(latitude, longitude);
+                map.setCenter(latlng);
+                marker.setPosition(latlng);
+                mapDiv.hidden = false;
+              } else {
+                document.getElementById("gps").innerText = "";
+                mapDiv.hidden = true;
+              }
             } else {
               document.getElementById("gps").innerText = "";
               mapDiv.hidden = true;
