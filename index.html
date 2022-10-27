@@ -10,16 +10,14 @@
       type="text/javascript"
       src="https://openapi.map.naver.com/openapi/v3/maps.js?ncpClientId=rj0u1h60zd"
     ></script>
-    <script type="text/javascript" src="exif.js"></script>
+    <!-- <script type="text/javascript" src="exif.js"></script> -->
+    <script type="text/javascript" src="exif-reader.js"></script>
     <title>사진 촬영 위치를 알려줍니다.</title>
   </head>
   <body>
     사진 촬영 위치를 알려줍니다.
     <br />
     <table>
-      <tr>
-        <td colspan="2" id="status"></td>
-      </tr>
       <tr>
         <td><label for="takePhotoMenu">takePhotoMenu</label></td>
         <td>
@@ -53,61 +51,91 @@
       albumMenu.onchange = onchange;
       function onchange(e) {
         console.log("onchange");
-        if (!navigator.geolocation) {
-          status.innerText = 'Geolocation is not supported by your browser';
-        } else {
-          status.innerText = 'Locating…';
-          navigator.geolocation.getCurrentPosition((position) => {
-            const latitude  = position.coords.latitude;
-            const longitude = position.coords.longitude;
-            status.innerText = `Current Position Latitude: ${latitude} °, Longitude: ${longitude} °`;
-          }, () => {
-            status.innerText = 'Unable to retrieve your location';
-          });
-        }
         var file = e.target.files[0];
         if (file && file.name) {
           console.log("getData");
-          EXIF.getData(file, function () {
-            const exifData = EXIF.getAllTags(this);
-            if (exifData.GPSLatitude?.length && exifData.GPSLongitude?.length) {
-              console.log("GPS exist");
-              const latitude =
-                exifData.GPSLatitude[0].numerator /
-                  exifData.GPSLatitude[0].denominator +
-                exifData.GPSLatitude[1].numerator /
-                  exifData.GPSLatitude[1].denominator /
-                  60 +
-                exifData.GPSLatitude[2].numerator /
-                  exifData.GPSLatitude[2].denominator /
-                  3600;
-              const longitude =
-                exifData.GPSLongitude[0].numerator /
-                  exifData.GPSLongitude[0].denominator +
-                exifData.GPSLongitude[1].numerator /
-                  exifData.GPSLongitude[1].denominator /
-                  60 +
-                exifData.GPSLongitude[2].numerator /
-                  exifData.GPSLongitude[2].denominator /
-                  3600;
-              document.getElementById(
-                "gps"
-              ).innerHTML = `${file.name}<br/>latitude ${latitude}<br/>longitude ${longitude}`;
-              if (!isNaN(latitude) && !isNaN(longitude)) { 
-                const latlng = new naver.maps.LatLng(latitude, longitude);
-                map.setCenter(latlng);
-                marker.setPosition(latlng);
-                mapDiv.hidden = false;
-              } else {
-                document.getElementById("gps").innerText = "";
-                mapDiv.hidden = true;
-              }
-            } else {
-              document.getElementById("gps").innerText = "";
-              mapDiv.hidden = true;
-            }
-          });
+          // loadExif(file);
+          loadExifReader(file);
         }
+      }
+
+      function setLatLong(latitude, longitude) {
+        document.getElementById(
+          "gps"
+        ).innerHTML = `latitude ${latitude}<br/>longitude ${longitude}`;
+        if (!isNaN(latitude) && !isNaN(longitude)) {
+          const latlng = new naver.maps.LatLng(latitude, longitude);
+          map.setCenter(latlng);
+          marker.setPosition(latlng);
+          mapDiv.hidden = false;
+        } else {
+          hiddenMap();
+        }
+      }
+
+      function hiddenMap() {
+        document.getElementById("gps").innerText = "";
+        mapDiv.hidden = true;
+      }
+
+      function calculateGps(value) {
+        return (
+          value[0][0] / value[0][1] +
+          value[1][0] / value[1][1] / 60 +
+          value[2][0] / value[2][1] / 3600
+        );
+      }
+
+      async function loadExifReader(file) {
+        const tags = await ExifReader.load(file);
+        if (tags.GPSLatitude?.value && tags.GPSLongitude?.value) {
+          console.log("GPS exist");
+          const latitude = calculateGps(tags.GPSLatitude.value);
+          const longitude = calculateGps(tags.GPSLongitude.value);
+          setLatLong(latitude, longitude);
+        } else {
+          hiddenMap();
+        }
+      }
+
+      function loadExif(file) {
+        EXIF.getData(file, function () {
+          const exifData = EXIF.getAllTags(this);
+          if (exifData.GPSLatitude?.length && exifData.GPSLongitude?.length) {
+            console.log("GPS exist");
+            const latitude = calculateGps([
+              [
+                exifData.GPSLatitude[0].numerator,
+                exifData.GPSLatitude[0].denominator,
+              ],
+              [
+                exifData.GPSLatitude[1].numerator,
+                exifData.GPSLatitude[1].denominator,
+              ],
+              [
+                exifData.GPSLatitude[2].numerator,
+                exifData.GPSLatitude[2].denominator,
+              ],
+            ]);
+            const longitude = calculateGps([
+              [
+                exifData.GPSLongitude[0].numerator,
+                exifData.GPSLongitude[0].denominator,
+              ],
+              [
+                exifData.GPSLongitude[1].numerator,
+                exifData.GPSLongitude[1].denominator,
+              ],
+              [
+                exifData.GPSLongitude[2].numerator,
+                exifData.GPSLongitude[2].denominator,
+              ],
+            ]);
+            setLatLong(latitude, longitude);
+          } else {
+            hiddenMap();
+          }
+        });
       }
     </script>
   </body>
