@@ -18,6 +18,9 @@
     <br />
     <table>
       <tr>
+        <td colspan="2" id="status"></td>
+      </tr>
+      <tr>
         <td><label for="takePhotoMenu">takePhotoMenu</label></td>
         <td>
           <input type="file" id="takePhotoMenu" capture accept="image/*" />
@@ -43,12 +46,25 @@
         map: map,
       });
 
+      const status = document.getElementById("status");
       const takePhotoMenu = document.getElementById("takePhotoMenu");
       const albumMenu = document.getElementById("albumMenu");
       takePhotoMenu.onchange = onchange;
       albumMenu.onchange = onchange;
       function onchange(e) {
         console.log("onchange");
+        if (!navigator.geolocation) {
+          status.innerText = 'Geolocation is not supported by your browser';
+        } else {
+          status.innerText = 'Locating…';
+          navigator.geolocation.getCurrentPosition((position) => {
+            const latitude  = position.coords.latitude;
+            const longitude = position.coords.longitude;
+            status.innerText = `Current Position Latitude: ${latitude} °, Longitude: ${longitude} °`;
+          }, () => {
+            status.innerText = 'Unable to retrieve your location';
+          });
+        }
         var file = e.target.files[0];
         if (file && file.name) {
           console.log("getData");
@@ -76,7 +92,7 @@
                   3600;
               document.getElementById(
                 "gps"
-              ).innerText = `${file.name}<br/>latitude ${latitude}<br/>longitude ${longitude}`;
+              ).innerHTML = `${file.name}<br/>latitude ${latitude}<br/>longitude ${longitude}`;
               if (!isNaN(latitude) && !isNaN(longitude)) { 
                 const latlng = new naver.maps.LatLng(latitude, longitude);
                 map.setCenter(latlng);
